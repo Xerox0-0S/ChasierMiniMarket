@@ -1,0 +1,631 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+
+using namespace std;
+#define MAX_PRODUCT 100
+
+char confirm;
+unsigned int pilih;
+
+//main function
+bool kasus(int pilih);
+bool admin();
+bool beli();
+//mostly admin function
+bool kasusAdmin(int pilih);
+void read();
+void editProduct();
+void addProduct();
+void remProduct();
+int checkProduct ();
+
+//receipt function
+void recProduct (int pilih, int banyak, int count, int counter);
+void recHeader();
+void recEnd(int sum, int cash, int kembali);
+void displayRec();
+void recEdit(double &total);
+
+struct dataProduct {
+    int code;
+    string name;
+    unsigned int price;
+}; 
+
+dataProduct product [MAX_PRODUCT];
+
+struct interface {
+    void menu(){
+        cout << "\t MAIN MENU \n";
+        cout << "\t--------------------\n";
+        cout << "\t   1. Admin \n";
+        cout << "\t   2. Run Program \n"; //buy
+        cout << "\t   3. Exit\n";
+        cout << "\t--------------------\n\n";
+    };
+
+    void admin(){
+        cout << "\n\n\tADMINISTRATOR MENU\n";
+        cout << "\t--------------------\n";
+        cout << "\t   1. Add product \n";
+        cout << "\t   2. Product list \n";
+        cout << "\t   3. Delete product\n";
+        cout << "\t   4. Back to Menu \n";
+        cout << "\t--------------------\n\n";
+    }
+
+    void beli(){
+        cout << "\n\n\tPURCHASE MENU\n";
+        cout << "\t--------------------\n";
+        cout << "\t   1. Add product \n";
+        cout << "\t   2. Back to Menu \n";
+        cout << "\t--------------------\n\n";
+    }
+
+}; interface ui;
+
+//___________________
+// MAIN
+//___________________
+
+int main() {
+    menu:
+
+    ui.menu();
+    cout << "\tPilih menu : ";
+    cin >> pilih;
+
+    if (pilih < 1 || pilih > 3) {
+        cout << "invalid input \n";
+    }
+
+    if (!kasus(pilih)){
+        
+        cout << "\n\t\tPROGRAM BERAKHIR";
+    } 
+    else 
+    {
+        system ("cls");
+        goto menu;
+    }
+
+    return 0;
+}
+
+bool kasus (int pilih){
+    
+    switch(pilih) 
+    {
+        case 1:{
+            return admin();
+            break;
+        } 
+        case 2:
+        {
+            return beli();
+            break;
+        }
+
+        case 3:
+        {
+            "\n Program selesai \n";
+            break;
+        }
+        
+        default:
+        {
+            return true;
+            break;
+        }
+    }
+    return 0;
+}
+
+bool admin() {
+    string pass, choice; 
+    system ("cls");
+    
+    cout << "Enter Password : "; cin >> pass;
+    if (!(pass == "admin2023"))
+    {
+        cout << "invalid password\n\n";
+        goto cont;
+    }
+    system ("cls");
+
+    back:
+    ui.admin();
+    cout << "\tPilih menu : ";
+    cin >> pilih;
+    switch(pilih)
+    {
+        case 1: {
+            addProduct();
+            break;
+        }
+        case 2: {
+            system("cls");
+            //display product lists
+            read();
+            //edit
+            cout << "\n\t Apakah ingin mengedit produk ? (y/n)";
+            cin >> confirm;
+            if (confirm == 'y'||confirm == 'Y')
+            {
+                editProduct();
+            }
+            else {break;} 
+            break;
+        }
+        case 3: {
+            remProduct();
+            break;
+        }
+        case 4: {
+            return true;
+            break;
+        }
+    }
+
+    cont:
+    cout << "\t(press y to back || n to menu) : ";
+    cin >> confirm;
+    if (confirm == 'y')
+    {
+        system ("cls");
+        goto back;
+    } else return true;
+    
+}
+
+void read(){
+    int i = 0;
+
+    fstream data;
+    data.open("database.txt",ios::in);
+    while(data >> product[i].code >> product[i].name >> product[i].price){
+        cout << product[i].code << " " << product[i].name << " \t Rp. "<< product[i].price <<endl;
+        i++;
+        
+    }
+    data.close();
+}
+
+void editProduct(){
+    fstream data, data1;
+    string newName;
+    int i=0,newCode = 1, newPrice;
+    system("cls");
+    read();
+
+    cout << "\n\n\tPilih kode produk yang ingin diubah : ";
+    cin >> pilih;
+    if (pilih <= 0 || pilih > checkProduct()){
+        cout <<"\n\t !!PRODUK TIDAK ADA!!";
+        goto end;
+    }
+
+    cout << "\n\n\tNama baru produk  : ";
+    cin >> newName;
+    cout << "\n\n\tHarga baru produk : ";
+    cin >> newPrice;
+
+    data.open("database.txt", ios::in|ios::out);
+    data1.open("database1.txt",ios::app);
+    while(data >> product[i].code >> product[i].name >> product[i].price){
+        if(product[i].code == pilih){
+            data1<<product[i].code<< " " <<newName<<" "<<newPrice;
+            if (!data.eof()) 
+            {
+                data1 << endl;  // Tambahkan newline hanya jika belum mencapai akhir file
+            }
+        }else { 
+            data1<<product[i].code<< " " <<product[i].name<<" "<<product[i].price;
+            if (!data.eof()) 
+            {
+                data1 << endl;
+            }
+        }
+        i++;
+    }
+
+    data.close();
+    data1.close();
+
+     remove("database.txt");
+    rename("database1.txt","database.txt");
+
+    end:
+    system("cls");
+    read();
+    cout << "\n\n\t\t Apakah ingin mengubah produk lagi ? (y/n) : ";
+    cin >> confirm;
+    if (confirm =='y' || confirm == 'Y'){
+        system("cls");
+        return editProduct();
+    }
+
+}
+
+int checkProduct (){ //mengecek berapa banyak list barang yang ada
+    int i = 0;
+
+    fstream data;
+    data.open("database.txt",ios::in);
+    while(data >> product[i].code >> product[i].name >> product[i].price){
+        i++;
+    }
+
+    return i;
+}
+
+void addProduct(){
+    fstream data;
+    int harga, kode = 1, cekCode, cekHarga, tambahKode = 0;
+    string nama, cekNama, simpan;
+    read();
+
+    ulangi:
+    data.open("database.txt", ios::in);
+
+    cout << "\n\t\t Add new product \t ";
+    cout << "\n\t\t Nama Produk : ";
+    cin >> nama;
+    cout << "\n\t\t Price : ";
+    cin >> harga;
+
+    while (data >> cekCode >> cekNama >> cekHarga){
+        if(cekCode == kode){
+            kode++;
+        }
+    }
+        data.close();
+        data.open("database.txt", ios::app);
+        data << "\n"<<kode<<" "<<nama<<" "<<harga;
+        data.close();
+
+        system("cls");
+        read();
+        cout << "\n\tProduk berhasil ditambahkan !\n";
+        cout << "\tApakah mau menambah produk lagi? (y/n) : ";
+        cin >> confirm;
+        if (confirm == 'y' || confirm == 'Y'){
+            system("cls");
+            read();
+            goto ulangi;
+        }
+    }
+
+void remProduct(){
+    fstream data, data1;
+    int i=0,newCode = 1;
+    read();
+
+    cout << "\n\n\tPilih kode produk yang ingin dihapus : ";
+    cin >> pilih;
+    data.open("database.txt", ios::in|ios::out);
+    data1.open("database1.txt",ios::app);
+    while(data >> product[i].code >> product[i].name >> product[i].price){
+        if(product[i].code != pilih){
+            data1<<newCode++<< " " <<product[i].name<<" "<<product[i].price;
+            if (!data.eof()) 
+            {
+                data1 << endl;  // Tambahkan newline hanya jika belum mencapai akhir file
+            }
+        }
+        i++;
+    }
+
+    data.close();
+    data1.close();
+
+     remove("database.txt");
+    rename("database1.txt","database.txt");
+
+    system("cls");
+    read();
+    cout << "\n\n\t !! Apakah ingin menghapus produk lagi ? (y/n) : ";
+    cin >> confirm;
+    if (confirm =='y' || confirm == 'Y'){
+        system("cls");
+        return remProduct();
+    }
+}
+
+
+void recHeader(){
+    fstream dataRec;
+    dataRec.open("Struk_Belanja.txt", ios::out);
+    dataRec << "\t\t\tMINIMARKET K-8\n\n";
+    dataRec << "\tNAMA PRODUK \t Harga \t\t Jumlah\n";
+    dataRec << "\t=========================================\n";
+    dataRec.close();
+
+    dataRec.open("Struk_Temp.txt", ios::out);
+    dataRec.close();
+    
+}
+
+void recProduct(int pilih, int banyak, int count, int counter){
+        fstream dataRec, recTemp;
+        
+        dataRec.open("Struk_Belanja.txt", ios::in|ios::app);
+        recTemp.open("Struk_Temp.txt",ios::app);
+
+        dataRec << " [" << counter << "]"<< "\t" << product[pilih-1].name << "\t\t Rp. " << product[pilih-1].price << "\t x \t " << banyak << endl;
+        recTemp << product[pilih-1].name << " " << product[pilih-1].price << " " << banyak<<endl;
+        
+        dataRec.close();
+        recTemp.close();
+    }
+    
+void recEnd(int sum, int cash, int kembali, int pajak){
+    fstream dataRec;
+    dataRec.open("Struk_Belanja.txt", ios::app);
+            dataRec << "\n\t----------------------------------------";
+            dataRec << "\n\t Harga Jual       : \tRp. "<<sum-pajak;
+            dataRec << "\n\t----------------------------------------";
+            dataRec << "\n\t PPN 10%          : \tRp. "<<pajak;
+            dataRec << "\n\t Total Belanja    : \tRp. "<<sum;
+            dataRec << "\n\t Tunai            : \tRp. "<<cash;
+            dataRec << "\n\t Jumlah kembalian : \tRp. " << kembali;
+            dataRec << "\n\t----------------------------------------";
+            dataRec << "\n\n\t=========================================";
+            dataRec << "\n\tTERIMAKASIH, SELAMAT BELANJA KEMBALI\n";
+            dataRec << "\t=========================================";
+    dataRec.close();
+}
+
+void displayRec(){
+    ifstream dataRec;
+    string rec;
+    int i = 0, jump = 0;
+    
+    dataRec.open("Struk_Belanja.txt");
+            if(jump < 4){
+            getline(dataRec, rec);
+            jump++;
+            }
+            do{
+            cout << rec << endl;
+            }while(getline(dataRec, rec));                                                                 
+            
+    dataRec.close();
+}
+
+int checkTemp(){
+    int i = 0, amount;
+
+    fstream data;
+    data.open("Struk_Temp.txt",ios::in);
+    while(data >> product[i].name >> product[i].price >> amount){
+        i++;
+    }
+
+    return i;
+}
+
+void recEdit(double &total){
+    fstream recTemp,data;
+    string rec;
+    int i=0, newCode = 0, newAmount, amount, pilih;
+    system("cls");
+
+    displayRec();
+    cout << "\n---------------------------";
+
+    cout << "\n\n\tPilih produk yang ingin diubah : ";
+    cin >> pilih;
+    if (pilih <= 0 || pilih > checkTemp()){
+        cout <<"\n\t !!PRODUK TIDAK ADA!!";
+        goto end;
+    }
+
+    cout << "\n\n\tMasukan jumlah produk yang baru : ";
+    cin >> newAmount;
+
+    data.open("Struk_Temp.txt", ios::in|ios::out);
+    recTemp.open("Struk_Temp2.txt",ios::app);
+    while(data >> product[i].name >> product[i].price >> amount){
+    
+        if(product[i].code == pilih){
+            recTemp<<product[i].name<<" "<< product[i].price << " " << newAmount;
+            if (!data.eof()) 
+            {
+                recTemp << endl;  //newline hanya jika belum mencapai akhir file
+            }
+        }else { 
+            recTemp<<product[i].name<<" "<<product[i].price << " " << amount;
+            if (!data.eof()) 
+            {
+                recTemp << endl;  
+            }
+        }
+        i++;
+        
+    }
+
+    data.close();
+    recTemp.close();
+    
+    //COUNT
+    recHeader();
+    remove("Struk_Temp.txt");
+    rename("Struk_Temp2.txt", "Struk_Temp.txt");
+    
+        total = 0;
+        i=0;
+        recTemp.open("Struk_Temp.txt",ios::in);
+        data.open("Struk_Belanja.txt", ios::app);
+        while(recTemp >> product[i].name >> product[i].price>>amount){
+        
+        if(amount != 0){
+        data << " [" << i+1 << "]"<< "\t" << product[i].name << "\t\t Rp. " << product[i].price << "\t x \t " << amount << endl;
+        total += product[i].price*amount;
+        i++;
+        }
+        
+        }
+        data.close();
+        recTemp.close();
+    
+
+    end:
+    system("cls");
+    displayRec();
+    cout << "\n\n\t Apakah ingin mengubah produk lagi ? (y/n) : ";
+    cin >> confirm;
+    if (confirm =='y' || confirm == 'Y'){
+        system("cls");
+        return recEdit(total);
+    }
+}
+
+bool beli(){
+    system("cls");
+    recHeader(); //STRUK BELANJA START AND CLEAR TEMP
+    int n, banyak, cash=0, kembali = 0, count = 0, amount, counter = 1;
+    double sum,total, pajak;
+    fstream dataRec;
+
+    ui.beli();
+    cout << "\tPilih menu : ";
+    cin >> pilih;
+    switch(pilih){
+
+        case 1:
+        {
+            //ui. remove?
+            pilih = 0;
+
+            do{
+            system ("cls");
+            cout << "\t------------------------------------\n";
+            cout << "\t\t\tLIST BELANJA\n";
+            displayRec();
+            cout << "\t------------------------------------\n";
+
+            cout << "\n\n\tLIST BARANG\n";
+            cout << "------------------------\n";
+            cout << "  NAMA PRODUK \t Harga \n";
+            cout << "------------------------\n";
+            read();
+            cout << "\n------------------------\n";
+
+            cout << "\n\n\tMasukkan kode barang yang akan dibeli : ";
+            cin >> pilih;
+            while(pilih <= 0 ||pilih > checkProduct()){
+                cout <<"\n\t ========================================";
+                cout <<"\n\t !!PRODUK TIDAK ADA!!";
+                cout <<"\n\t Masukan kode produk yang tersedia : ";
+                cin >> pilih;
+                cout <<"\n\t ========================================";
+            }
+
+            cout << "\n\n\tBanyak barang : ";
+            cin >> banyak;
+            total += product[pilih-1].price*banyak;
+
+            if(pilih != 0) {  
+                
+                recProduct(pilih, banyak, count, counter);
+                counter++;
+            }
+            reconf:
+            system("cls");
+            cout << "\t------------------------------------\n";
+            cout << "\n\t\tLIST BELANJA\n";
+            displayRec();
+            cout << "\t=========================================\n";
+            cout << "\n\t------------------------------------";
+            cout << "\n\t Tambah barang belanja           [1] ";
+            cout << "\n\t Checkout                        [2] ";
+            cout << "\n\t Hapus/kurangi barang belanja    [3] ";
+            cout << "\n\t------------------------------------";
+            cout << "\n\t Masukan pilihan : ";
+
+            cin >> confirm;
+
+            if(confirm == '3')
+            {
+                dataRec.open("Struk_Temp2.txt",ios::out);
+                dataRec.close();
+                recEdit(total);
+                goto reconf;
+            }
+            if(confirm == '2'){
+                break;
+            }
+        }while (confirm == '1');
+
+
+            //checkout
+            system("cls");
+            cout << "\n\t\tLIST BELANJA\n";
+            displayRec();
+            cout << "\t=========================================\n";
+
+
+            pajak = total*0.1;
+            sum = total+pajak;
+            cout << "\n\n\t\t MENU CHECKOUT";
+            cout << "\n\t----------------------------------------";
+            cout << "\n\t Harga Jual              : Rp. "<<total;
+            cout << "\n\t PPN 10%                 : Rp. "<<pajak;
+            cout << "\n\t Total Belanja           : Rp. "<<sum;
+            cout << "\n\t Masukkan jumlah tunai   : Rp. ";             
+            
+            while(cash < sum){
+                
+                cin >> cash;
+                if (cash < sum) {
+            cout << "\t ========================================\n";
+            cout << "\t Pembayaran invalid ! ";
+            cout << "\n\t Masukan jumlah Tunai    : Rp. ";
+            
+                }
+            }
+            kembali = cash-sum;
+            cout << "\n\t--------------------------------------------";    
+            cout << "\n\t Jumlah kembalian        : Rp. " << kembali;
+
+            recEnd(sum, cash, kembali, pajak); //tutup receipt
+            
+            //exit?
+             cout << "\n\t========================================";    
+             cout << "\n\nApakah ingin melakukan transaksi lagi ? (y/n) : ";
+        cin >> confirm;
+        if (confirm == 'y' || confirm == 'Y')
+        {
+            return beli();
+        } else return true;
+            break;
+        }
+
+        case 2:
+        {
+             cout << "Back to menu? (y/n) : ";
+         invalid:
+        cin >> confirm;
+        if (confirm == 'n' || confirm == 'n')
+        {
+            return beli();
+        } else if (confirm =='Y' || confirm == 'y')
+        return true;
+        else{
+        cout << "\n\t\t!!Invalid input!! \n\t\t Back to menu? (y/n) : ";
+        goto invalid;
+        }
+            break;
+        }
+    }
+
+    cout << "Back to menu? (y/n) : ";
+    cin >> confirm;
+    if (confirm == 'y')
+    {
+        return true;
+    } else return beli();
+    
+}
